@@ -1,7 +1,6 @@
 using AutoMapper;
 using WarehouseManager.Core.DTOs;
 using WarehouseManager.Persistence.Interfaces;
-using WarehouseManager.Services.Exception;
 using WarehouseManager.Services.Interfaces;
 
 namespace WarehouseManager.Services.Product;

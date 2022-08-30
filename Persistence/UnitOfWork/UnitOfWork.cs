@@ -11,14 +11,14 @@ public class UnitOfWork : IUnitOfWork
     public IBaseRepository<User> UserRepository { get; }
     public IBaseRepository<Warehouse> WarehouseRepository { get; }
     public IBaseRepository<WarehouseItem> WarehouseItemRepository { get; }
-    public IBaseRepository<Product?> ProductRepository { get; }
+    public IBaseRepository<Product> ProductRepository { get; }
 
     public UnitOfWork(ApplicationDbContext context)
     {
         UserRepository = new BaseRepository<User>(context);
         WarehouseRepository = new BaseRepository<Warehouse>(context);
         WarehouseItemRepository = new BaseRepository<WarehouseItem>(context);
-        ProductRepository = new BaseRepository<Product?>(context);
+        ProductRepository = new BaseRepository<Product>(context);
         _context = context;
     }
 

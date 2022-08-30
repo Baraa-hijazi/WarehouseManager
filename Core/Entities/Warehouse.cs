@@ -9,9 +9,9 @@ public class Warehouse
 
     public int Id { get; set; }
 
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
-    public string Description { get; set; }
+    public string Description { get; set; } = null!;
 
     public ICollection<WarehouseItem> WarehouseItems { get; set; }
 }

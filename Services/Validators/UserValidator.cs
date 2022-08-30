@@ -4,7 +4,7 @@ using WarehouseManager.Core.DTOs;
 namespace WarehouseManager.Services.Validators;
 
 public class UserValidator : AbstractValidator<CreateUserDto>
-    {
+{
     public UserValidator()
     {
         RuleFor(f => f.UserName).NotEmpty().MinimumLength(1).MaximumLength(20)

@@ -12,9 +12,9 @@ public class ApplicationDbContext : IdentityDbContext<User>
     {
     }
 
-    public DbSet<Product> Products { get; set; }
-    public DbSet<Warehouse> Warehouses { get; set; }
-    public DbSet<WarehouseItem> WarehouseItems { get; set; }
+    public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<Warehouse> Warehouses { get; set; } = null!;
+    public DbSet<WarehouseItem> WarehouseItems { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

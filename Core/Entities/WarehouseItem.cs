@@ -10,7 +10,7 @@ public class WarehouseItem
 
     public int WarehouseId { get; set; }
 
-    public Warehouse Warehouse { get; set; }
+    public Warehouse Warehouse { get; set; } = null!;
 
     public int Quantity { get; set; }
 }

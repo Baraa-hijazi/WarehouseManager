@@ -4,7 +4,7 @@ namespace WarehouseManager.Exceptions
 {
     public class ValidationException : Exception
     {
-        public IDictionary<string, string[]> Failures { get; }
+        private IDictionary<string, string[]> Failures { get; } = null!;
 
         public ValidationException()
         : base("validation failures have occurred.")
