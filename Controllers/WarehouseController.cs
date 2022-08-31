@@ -1,7 +1,8 @@
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WarehouseManager.Core.DTOs;
-using WarehouseManager.Services.Exception;
-using WarehouseManager.Services.Interfaces;
+using WarehouseManager.Persistence.Interfaces;
 
 namespace WarehouseManager.Controllers;
 
@@ -9,50 +10,87 @@ namespace WarehouseManager.Controllers;
 [ApiController]
 public class WarehouseController : BaseController
 {
-    private readonly IWarehouseService _warehouseService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    private const string ActionName = nameof(GetValue);
 
-    public WarehouseController(IWarehouseService warehouseService)
+    public WarehouseController(IMapper mapper, IUnitOfWork unitOfWork)
     {
-        _warehouseService = warehouseService;
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
     }
 
-    [HttpPost("CreateWarehouse")]
-    public async Task<IActionResult> CreateWarehouse([FromBody] CreateWarehouseDto dto) =>
-        Ok(await _warehouseService.CreateWarehouse(dto));
-
-    [HttpGet("GetWarehouses")]
-    public async Task<IActionResult> GetWarehouses(int pageIndex, int pageSize) =>
-        Ok(await _warehouseService.GetWarehouses(pageIndex, pageSize));
-
-    [HttpGet("GetWarehouse")]
-    public async Task<IActionResult> GetWarehouse(int id)
+    [AllowAnonymous]
+    [HttpPost]
+    public async Task<IActionResult> CreateWarehouse([FromBody] CreateWarehouseDto dto)
     {
-        var result = await _warehouseService.GetWarehouse(id);
-        if (result == null) return StatusCode(404, ExceptionState.IdNotFound);
-        return Ok();
+        var warehouse = _mapper.Map<Core.Entities.Warehouse>(dto);
+
+        _unitOfWork.WarehouseRepository.Add(warehouse);
+        await _unitOfWork.CommitAsync();
+
+        var createdResource = new { warehouse.Id, Version = "1.0" };
+        var routeValues = new { id = createdResource.Id, version = createdResource.Version };
+
+        return CreatedAtAction(ActionName, routeValues, createdResource);
     }
 
-    [HttpGet("GetWarehouseItems")]
-    public async Task<IActionResult> GetWarehouseItems(int id)
+    [AllowAnonymous]
+    [HttpGet("GetValues")]
+    public async Task<IActionResult> GetWarehouses(int pageIndex, int pageSize)
     {
-        var result = await _warehouseService.GetWarehouseItems(id);
-        if (result == null) return StatusCode(404, ExceptionState.IdNotFound);
-        return Ok();
+        var wareHouses = await _unitOfWork.WarehouseRepository.GetAllIncludedPagination(
+            includes: i => i.WarehouseItems,
+            pageIndex: pageIndex,
+            pageSize: pageSize);
+
+        return Ok(_mapper.Map<PagedResultDto<WarehouseDto>>(wareHouses));
     }
 
-    [HttpPut("UpdateWarehouse")]
-    public async Task<IActionResult> UpdateWarehouse(int id, [FromBody] CreateWarehouseDto dto)
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> GetValue(int id)
     {
-        var result = await _warehouseService.UpdateWarehouse(id, dto);
-        if (result == null) return StatusCode(404, ExceptionState.IdNotFound);
-        return Ok();
+        var wareHouse = await _unitOfWork.WarehouseRepository.GetById(id);
+
+        if (wareHouse == null) return NotFound();
+
+        return Ok(wareHouse);
     }
 
-    [HttpDelete("DeleteWarehouse")]
-    public async Task<IActionResult> DeleteWarehouse(int id)
+    [AllowAnonymous]
+    [HttpPut]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateWarehouseDto dto)
     {
-        var result = await _warehouseService.DeleteWarehouse(id);
-        if (result == null) return StatusCode(404, ExceptionState.IdNotFound);
-        return Ok();
+        var warehouse = await _unitOfWork.WarehouseRepository.GetById(id);
+
+        if (warehouse == null) return NotFound();
+
+        _mapper.Map(dto, warehouse);
+
+        _unitOfWork.WarehouseRepository.Update(warehouse);
+        await _unitOfWork.CommitAsync();
+
+        var createdResource = new { warehouse.Id, Version = "1.0" };
+        var routeValues = new { id = createdResource.Id, version = createdResource.Version };
+
+        return AcceptedAtAction(ActionName, routeValues, createdResource);
+    }
+
+    [AllowAnonymous]
+    [HttpDelete]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var warehouse = await _unitOfWork.WarehouseRepository.GetById(id);
+
+        if (warehouse == null) return NotFound();
+
+        _unitOfWork.WarehouseRepository.Delete(warehouse);
+        await _unitOfWork.CommitAsync();
+
+        var createdResource = new { warehouse.Id, Version = "1.0" };
+        var routeValues = new { id = createdResource.Id, version = createdResource.Version };
+
+        return AcceptedAtAction(ActionName, routeValues, createdResource);
     }
 }

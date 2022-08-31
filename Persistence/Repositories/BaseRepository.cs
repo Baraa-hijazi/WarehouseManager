@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Ardalis.Specification.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using WarehouseManager.Core.DTOs;
 using WarehouseManager.Persistence.Context;
@@ -15,6 +16,11 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
     {
         _context = context;
         _table = context.Set<T>();
+    }
+
+    public async Task<List<T>> EntityFilterSpec(EntityFilterSpec<T> spec)
+    {
+        return await _table.WithSpecification(spec).ToListAsync();
     }
 
     public async Task<IEnumerable<T>> GetAll(Expression<Func<T, bool>>? predicate = null, string? includes = null)
@@ -51,14 +57,9 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
         if (pageIndex <= 0) pageIndex = 1;
         if (pageSize <= 0) pageSize = 10;
 
-        if (predicate == null)
-            return new PagedResultDto<T>
-            {
-                Result = await _table.ToListAsync(),
-                TotalCount = _table.Count()
-            };
+        IQueryable<T> query = _table;
 
-        var query = _table.Where(predicate);
+        if (predicate != null) query = _table.Where(predicate);
 
         query = includes.Aggregate(query, (current, include) => current.Include(include));
 
@@ -79,10 +80,10 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
         _context.Entry(obj).State = EntityState.Modified;
     }
 
-    public T Delete(T existing)
+    public void Delete(T obj)
     {
-        _table.Remove(existing);
-        return existing;
+        _table.Remove(obj);
+        _context.Entry(obj).State = EntityState.Deleted;
     }
 
     public Task DeleteRange(IEnumerable<T> entities)

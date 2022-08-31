@@ -1,7 +1,8 @@
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WarehouseManager.Core.DTOs;
-using WarehouseManager.Services.Exception;
-using WarehouseManager.Services.Interfaces;
+using WarehouseManager.Persistence.Interfaces;
 
 namespace WarehouseManager.Controllers;
 
@@ -9,42 +10,86 @@ namespace WarehouseManager.Controllers;
 [ApiController]
 public class ProductController : BaseController
 {
-    private readonly IProductService _productService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    private const string ActionName = nameof(GetValue);
 
-    public ProductController(IProductService productService)
+    public ProductController(IUnitOfWork unitOfWork, IMapper mapper)
     {
-        _productService = productService;
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
     }
 
-    [HttpPost("CreateProduct")]
-    public async Task<IActionResult> CreateProduct([FromBody] CreateProductDto dto) =>
-        Ok(await _productService.CreateProduct(dto));
-
-    [HttpGet("GetProducts")]
-    public async Task<IActionResult> GetProducts(int pageIndex, int pageSize) =>
-        Ok(await _productService.GetProducts(pageIndex, pageSize));
-
-    [HttpGet("GetProduct")]
-    public async Task<IActionResult> GetProduct(int id)
+    [AllowAnonymous]
+    [HttpPost]
+    public async Task<IActionResult> Post([FromBody] CreateProductDto dto)
     {
-        var result = await _productService.GetProduct(id);
-        if (result == null) return StatusCode(404, ExceptionState.IdNotFound);
-        return Ok();
+        var product = _mapper.Map<Core.Entities.Product>(dto);
+
+        _unitOfWork.ProductRepository.Add(product);
+        await _unitOfWork.CommitAsync();
+
+        var createdResource = new { product.Id, Version = "1.0" };
+        var routeValues = new { id = createdResource.Id, version = createdResource.Version };
+
+        return CreatedAtAction(ActionName, routeValues, createdResource);
     }
 
-    [HttpPut("UpdateProduct")]
-    public async Task<IActionResult> UpdateProduct(int id, [FromBody] CreateProductDto dto)
+    [AllowAnonymous]
+    [HttpGet("GetValues")]
+    public async Task<IActionResult> GetValues(int pageIndex, int pageSize)
     {
-        var result = await _productService.UpdateProduct(id, dto);
-        if (result == null) return StatusCode(404, ExceptionState.IdNotFound);
-        return Ok();
+        var products = await _unitOfWork.ProductRepository.GetAllIncludedPagination(
+            pageIndex: pageIndex,
+            pageSize: pageSize);
+
+        return Ok(_mapper.Map<PagedResultDto<ProductDto>>(products));
     }
 
-    [HttpDelete("DeleteProduct")]
-    public async Task<IActionResult> DeleteProduct(int id)
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> GetValue(int id)
     {
-        var result = await _productService.DeleteProduct(id);
-        if (result == null) return StatusCode(404, ExceptionState.IdNotFound);
-        return Ok();
+        var product = await _unitOfWork.ProductRepository.GetById(id);
+
+        if (product == null) return NotFound();
+
+        return Ok(product);
+    }
+
+    [AllowAnonymous]
+    [HttpPut]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateProductDto dto)
+    {
+        var product = await _unitOfWork.ProductRepository.GetById(id);
+
+        if (product == null) return NotFound();
+
+        _mapper.Map(dto, product);
+
+        _unitOfWork.ProductRepository.Update(product);
+        await _unitOfWork.CommitAsync();
+
+        var createdResource = new { product.Id, Version = "1.0" };
+        var routeValues = new { id = createdResource.Id, version = createdResource.Version };
+
+        return AcceptedAtAction(ActionName, routeValues, createdResource);
+    }
+
+    [AllowAnonymous]
+    [HttpDelete]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var product = await _unitOfWork.ProductRepository.GetById(id);
+
+        if (product == null) return NotFound();
+
+        _unitOfWork.ProductRepository.Delete(product);
+        await _unitOfWork.CommitAsync();
+
+        var createdResource = new { product.Id, Version = "1.0" };
+        var routeValues = new { id = createdResource.Id, version = createdResource.Version };
+
+        return AcceptedAtAction(ActionName, routeValues, createdResource);
     }
 }
