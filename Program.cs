@@ -12,14 +12,26 @@ using WarehouseManager.Persistence.Context;
 var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
-
+var myAllowSpecificOrigins = "_myAllowSpecificOrigins";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: myAllowSpecificOrigins,
+        policy =>
+        {
+            policy.WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "http://localhost:3000/create"
+            ).AllowAnyMethod().AllowAnyHeader();
+        });
+});
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer("Server=b-hejazi;Database=WarehouseManager;Trusted_Connection=True;"));
+    options.UseSqlServer("Server=localhost;Database=WarehouseManager;Trusted_Connection=True;"));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -93,6 +105,8 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ErrorHandlerMiddleware>();
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors(myAllowSpecificOrigins);
+
 app.UseAuthentication();
 
 app.UseAuthorization();

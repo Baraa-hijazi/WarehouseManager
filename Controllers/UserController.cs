@@ -78,7 +78,7 @@ public class UserController : BaseController
             pageIndex: pageIndex,
             pageSize: pageSize);
 
-        return Ok(_mapper.Map<PagedResultDto<ProductDto>>(users));
+        return Ok(_mapper.Map<PagedResultDto<UserDto>>(users));
     }
 
     [AllowAnonymous]
