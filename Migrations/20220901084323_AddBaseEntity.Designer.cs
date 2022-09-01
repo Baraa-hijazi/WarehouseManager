@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WarehouseManager.Persistence.Context;
 
@@ -11,9 +12,10 @@ using WarehouseManager.Persistence.Context;
 namespace WarehouseManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220901084323_AddBaseEntity")]
+    partial class AddBaseEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -282,20 +284,20 @@ namespace WarehouseManager.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "12a4e7a1-f314-4ad4-99b6-ffc03187fcae",
+                            Id = "5f0c1d5f-6be0-41bf-8e1b-37d12f7b5419",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "44dc17ce-275c-4752-9204-cdfe9214df28",
-                            CreatedOn = new DateTime(2022, 9, 1, 11, 44, 46, 986, DateTimeKind.Local).AddTicks(1665),
+                            ConcurrencyStamp = "2c16861d-d9ef-4cc1-ae3a-79bf759f3712",
+                            CreatedOn = new DateTime(2022, 9, 1, 11, 43, 22, 787, DateTimeKind.Local).AddTicks(5926),
                             Email = "admin@admin.com",
                             EmailConfirmed = true,
                             IsDeleted = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@ADMIN.COM",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAEAACcQAAAAECXziwrDGu/P5SkiGFD1cmgtUze+YltDWdpWbMdfhFxUhXjQ2Q5AgZc26jXzhDJJjg==",
+                            PasswordHash = "AQAAAAEAACcQAAAAEEulDNgZlxLPDXdgfMeJdAs+UkZf3/HEGWts37MSxfRQI4qj8i9ewp0AgXjG9exKYQ==",
                             PhoneNumber = "+9999999999",
                             PhoneNumberConfirmed = true,
-                            SecurityStamp = "b5238b98-9d33-45f4-bffd-79d02bb84d95",
+                            SecurityStamp = "a57e9a1d-d29d-42f1-b4db-df37ab6125a5",
                             TwoFactorEnabled = false,
                             UserName = "admin"
                         });

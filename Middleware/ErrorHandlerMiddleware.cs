@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.Json;
 using WarehouseManager.Exceptions;
 
-namespace WarehouseManager.Extensions;
+namespace WarehouseManager.Middleware;
 
 public class ErrorHandlerMiddleware
 {

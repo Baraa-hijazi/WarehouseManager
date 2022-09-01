@@ -1,6 +1,6 @@
 namespace WarehouseManager.Core.Entities;
 
-public class WarehouseItem
+public class WarehouseItem : BaseEntity
 {
     public int Id { get; set; }
 

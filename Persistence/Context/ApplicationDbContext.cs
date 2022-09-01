@@ -1,15 +1,20 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
 using WarehouseManager.Core.Entities;
+using WarehouseManager.Core.Entities.Interfaces;
+using WarehouseManager.Services.Interfaces;
 
 namespace WarehouseManager.Persistence.Context;
 
 public class ApplicationDbContext : IdentityDbContext<User>
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    private readonly ICurrentRequestService _currentRequestService;
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options,
+        ICurrentRequestService currentRequestService) : base(options)
     {
+        _currentRequestService = currentRequestService;
     }
 
     public DbSet<Product> Products { get; set; } = null!;
@@ -23,21 +28,20 @@ public class ApplicationDbContext : IdentityDbContext<User>
         SeedData(builder);
     }
 
-
     private void SeedData(ModelBuilder builder)
     {
         var hash = new PasswordHasher<User>();
 
         builder.Entity<User>().HasData(new User
         {
-            Id = new Guid().ToString(),
             UserName = "admin",
-            NormalizedUserName = "admin".ToUpper(),
-            Email = "admin@admin.com",
-            NormalizedEmail = "admin@admin.com".ToUpper(),
             EmailConfirmed = true,
+            Email = "admin@admin.com",
             PhoneNumber = "+9999999999",
             PhoneNumberConfirmed = true,
+            Id = Guid.NewGuid().ToString(),
+            NormalizedUserName = "admin".ToUpper(),
+            NormalizedEmail = "admin@admin.com".ToUpper(),
             PasswordHash = hash.HashPassword(null!, "P@$$w0rd")
         });
     }
@@ -45,14 +49,37 @@ public class ApplicationDbContext : IdentityDbContext<User>
     private void FluentApi()
     {
     }
-}
 
-public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
-{
-    public ApplicationDbContext CreateDbContext(string[] args)
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
-        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseSqlServer("Server=b-hejazi;Database=WarehouseManager;Trusted_Connection=True;");
-        return new ApplicationDbContext(optionsBuilder.Options);
+        AddAuditInfo();
+
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void AddAuditInfo()
+    {
+        foreach (var entry in ChangeTracker.Entries<IBaseEntity>())
+        {
+            var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
+            var utcTime = TimeZoneInfo.ConvertTime(DateTime.UtcNow, clientZone).ToUniversalTime();
+
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedBy = _currentRequestService.UserId;
+                    entry.Entity.CreatedOn = utcTime;
+                    break;
+                case EntityState.Modified:
+                    entry.Entity.UpdatedBy = _currentRequestService.UserId;
+                    entry.Entity.UpdatedOn = utcTime;
+                    break;
+                case EntityState.Deleted:
+                    entry.Entity.UpdatedBy = _currentRequestService.UserId;
+                    entry.Entity.UpdatedOn = utcTime;
+                    entry.Entity.IsDeleted = true;
+                    break;
+            }
+        }
     }
 }

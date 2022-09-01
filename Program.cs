@@ -6,8 +6,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using WarehouseManager.Core.Entities;
-using WarehouseManager.Extensions;
+using WarehouseManager.Middleware;
 using WarehouseManager.Persistence.Context;
+using WarehouseManager.Services.CurrentRequestService;
+using WarehouseManager.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +85,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+builder.Services.AddScoped<ICurrentRequestService, CurrentRequestService>();
+builder.Services.AddScoped<ITimeZoneManager, TimeZoneManager>();
+builder.Services.AddScoped<TimeZoneMiddleware>();
+
 builder.Services.Scan(scan => scan
     .FromCallingAssembly()
     .AddClasses()
@@ -102,14 +109,23 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseMiddleware<ErrorHandlerMiddleware>();
+app.Use((context, next) =>
+{
+    context.Request.EnableBuffering();
+    return next();
+});
+app.UseMiddleware<TimeZoneMiddleware>();
+
 app.UseHttpsRedirection();
+
 app.UseRouting();
+
 app.UseCors(myAllowSpecificOrigins);
 
 app.UseAuthentication();
 
 app.UseAuthorization();
+
 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
 app.MapControllers();

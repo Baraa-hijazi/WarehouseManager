@@ -1,6 +1,6 @@
 namespace WarehouseManager.Core.Entities;
 
-public class Warehouse
+public class Warehouse : BaseEntity
 {
     public Warehouse()
     {
