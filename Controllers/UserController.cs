@@ -51,7 +51,8 @@ public class UserController : BaseController
 
     [AllowAnonymous]
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] CreateUserDto dto)
+    public async Task<IActionResult> Post([FromBody] CreateUserDto dto, [FromQuery] DateTime dateFrom,
+        [FromQuery] DateTime dateAt)
     {
         var user = new User
         {
@@ -63,13 +64,12 @@ public class UserController : BaseController
         _unitOfWork.UserRepository.Add(user);
         await _unitOfWork.CommitAsync();
 
-
-        var createdResource = new { user.Id, Version = "1.0" };
-        var routeValues = new { id = createdResource.Id, version = createdResource.Version };
+        var createdResource = new { user.Id, DateTime.Now, Version = "1.0" };
+        var routeValues = new { id = createdResource.Id, DateTime.Now, version = createdResource.Version };
 
         return CreatedAtAction(ActionName, routeValues, createdResource);
     }
-    
+
     [AllowAnonymous]
     [HttpGet("GetValues")]
     public async Task<IActionResult> GetValues(int pageIndex, int pageSize)

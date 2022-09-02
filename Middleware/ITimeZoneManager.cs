@@ -2,5 +2,6 @@ namespace WarehouseManager.Middleware;
 
 public interface ITimeZoneManager
 {
-    Task ModifyTimeZones(HttpContext context);
+    Task ModifyRequestTimeZones(HttpContext context);
+    Task ModifyResponseTimeZones(HttpContext context);
 }

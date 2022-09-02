@@ -14,7 +14,7 @@ using WarehouseManager.Services.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
-var myAllowSpecificOrigins = "_myAllowSpecificOrigins";
+const string myAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: myAllowSpecificOrigins,
@@ -96,6 +96,7 @@ builder.Services.Scan(scan => scan
     .AsMatchingInterface()
     .WithScopedLifetime());
 
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -114,7 +115,6 @@ app.Use((context, next) =>
     context.Request.EnableBuffering();
     return next();
 });
-app.UseMiddleware<TimeZoneMiddleware>();
 
 app.UseHttpsRedirection();
 
@@ -125,6 +125,8 @@ app.UseCors(myAllowSpecificOrigins);
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseMiddleware<TimeZoneMiddleware>();
 
 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
