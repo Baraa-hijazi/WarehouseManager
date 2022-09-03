@@ -2,8 +2,13 @@ namespace WarehouseManager.Core.DTOs;
 
 public class CreateWarehouseDto
 {
-    public string Name { get; set; }
-    public string Description { get; set; }
+    public CreateWarehouseDto()
+    {
+        WarehouseItems = new List<CreateWarehouseItemDto>();
+    }
+
+    public string Name { get; set; } = null!;
+    public string Description { get; set; } = null!;
 
     public ICollection<CreateWarehouseItemDto> WarehouseItems { get; set; }
 }
