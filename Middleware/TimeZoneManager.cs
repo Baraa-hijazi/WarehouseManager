@@ -60,6 +60,8 @@ public class TimeZoneManager : ITimeZoneManager
 
     public async Task ModifyResponseTimeZones(HttpContext context)
     {
+        
+        // var res = await GetListOfStringsFromStream(context.Response.Body);
         context.Response.Body = _responseBody;
 
         _responseBody.Seek(0, SeekOrigin.Begin);
@@ -90,4 +92,31 @@ public class TimeZoneManager : ITimeZoneManager
         // context.Response.Body = new MemoryStream(requestData);
         // context.Response.ContentLength = context.Response.Body.Length;
     }
+    
+    // private async Task<List<string>> GetListOfStringsFromStream(Stream requestBody)
+    // {
+    //     var builder = new StringBuilder();
+    //
+    //     var buffer = ArrayPool<byte>.Shared.Rent(4096);
+    //
+    //     while (true)
+    //     {
+    //         string body = await new StreamReader(requestBody).ReadToEndAsync();
+    //
+    //         var bytesRemaining = await requestBody.ReadAsync(buffer);
+    //         if (bytesRemaining == 0)
+    //         {
+    //             break;
+    //         }
+    //
+    //         var encodedString = Encoding.UTF8.GetString(buffer, 0, bytesRemaining);
+    //         builder.Append(encodedString);
+    //     }
+    //
+    //     ArrayPool<byte>.Shared.Return(buffer);
+    //
+    //     var entireRequestBody = builder.ToString();
+    //
+    //     return new List<string>(entireRequestBody.Split("\n"));
+    // }
 }

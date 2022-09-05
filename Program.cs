@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using WarehouseManager;
 using WarehouseManager.Core.Entities;
-using WarehouseManager.Middleware;
 using WarehouseManager.Persistence.Context;
 using WarehouseManager.Services.CurrentRequestService;
 using WarehouseManager.Services.Interfaces;
@@ -87,8 +87,8 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<ICurrentRequestService, CurrentRequestService>();
-builder.Services.AddScoped<ITimeZoneManager, TimeZoneManager>();
-builder.Services.AddScoped<TimeZoneMiddleware>();
+// builder.Services.AddScoped<ITimeZoneManager, TimeZoneManager>();
+// builder.Services.AddScoped<TimeZoneMiddleware>();
 
 builder.Services.Scan(scan => scan
     .FromCallingAssembly()
@@ -116,6 +116,11 @@ app.Use((context, next) =>
     return next();
 });
 
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<TimeZoneFilter>();
+});
+
 app.UseHttpsRedirection();
 
 app.UseRouting();
@@ -126,7 +131,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-app.UseMiddleware<TimeZoneMiddleware>();
+// app.UseMiddleware<TimeZoneMiddleware>();
 
 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 

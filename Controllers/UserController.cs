@@ -49,6 +49,7 @@ public class UserController : BaseController
         return Ok(await GenerateJsonWebTokenAsync(dto));
     }
 
+    [TimeZoneFilter]
     [AllowAnonymous]
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateUserDto dto, [FromQuery] DateTime dateFrom,
@@ -67,7 +68,9 @@ public class UserController : BaseController
         var createdResource = new { user.Id, DateTime.Now, Version = "1.0" };
         var routeValues = new { id = createdResource.Id, DateTime.Now, version = createdResource.Version };
 
-        return CreatedAtAction(ActionName, routeValues, createdResource);
+        // return CreatedAtAction(ActionName, routeValues, createdResource);
+
+        return Ok(user);
     }
 
     [AllowAnonymous]
@@ -81,6 +84,7 @@ public class UserController : BaseController
         return Ok(_mapper.Map<PagedResultDto<UserDto>>(users));
     }
 
+    [TimeZoneFilter]
     [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetValue(string id)
