@@ -82,8 +82,9 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
 
     public void Delete(T obj)
     {
-        _table.Remove(obj);
-        _context.Entry(obj).State = EntityState.Deleted;
+        // _table.Remove(obj);
+        _context.Set<T>().Remove(obj);
+        // _context.Entry(obj).State = EntityState.Deleted;
     }
 
     public Task DeleteRange(IEnumerable<T> entities)

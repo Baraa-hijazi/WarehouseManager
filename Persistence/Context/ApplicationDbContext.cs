@@ -52,7 +52,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
-        AddAuditInfo();
+        // AddAuditInfo();
 
         return await base.SaveChangesAsync(cancellationToken);
     }

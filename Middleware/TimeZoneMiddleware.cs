@@ -11,10 +11,24 @@ public class TimeZoneMiddleware : IMiddleware
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        // await _timeZoneManager.ModifyRequestTimeZones(context);
-        //
-        // await next(context);
-        //
+        await _timeZoneManager.ModifyRequestTimeZones(context);
+        
+        await next(context);
+        
         // await _timeZoneManager.ModifyResponseTimeZones(context);
+    }
+}
+public class TimeZoneResponseMiddleware : IMiddleware
+{
+    private readonly ITimeZoneManager _timeZoneManager;
+
+    public TimeZoneResponseMiddleware(ITimeZoneManager timeZoneManager)
+    {
+        _timeZoneManager = timeZoneManager;
+    }
+
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        await _timeZoneManager.ModifyResponseTimeZones(context.Response);
     }
 }

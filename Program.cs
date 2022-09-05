@@ -87,8 +87,11 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<ICurrentRequestService, CurrentRequestService>();
+builder.Services.AddScoped<TimeZoneFilter>();
+
 // builder.Services.AddScoped<ITimeZoneManager, TimeZoneManager>();
 // builder.Services.AddScoped<TimeZoneMiddleware>();
+// builder.Services.AddScoped<TimeZoneResponseMiddleware>();
 
 builder.Services.Scan(scan => scan
     .FromCallingAssembly()
@@ -96,6 +99,11 @@ builder.Services.Scan(scan => scan
     .AsMatchingInterface()
     .WithScopedLifetime());
 
+
+// builder.Services.AddControllers(options =>
+// {
+//     options.Filters.Add<TimeZoneFilter>();
+// });
 
 var app = builder.Build();
 
@@ -116,11 +124,6 @@ app.Use((context, next) =>
     return next();
 });
 
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<TimeZoneFilter>();
-});
-
 app.UseHttpsRedirection();
 
 app.UseRouting();
@@ -132,6 +135,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // app.UseMiddleware<TimeZoneMiddleware>();
+//
+// app.UseMiddleware<TimeZoneResponseMiddleware>();
 
 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
