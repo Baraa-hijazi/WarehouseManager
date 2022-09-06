@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.IO;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using WarehouseManager;
 using WarehouseManager.Core.Entities;
+using WarehouseManager.Middleware;
 using WarehouseManager.Persistence.Context;
 using WarehouseManager.Services.CurrentRequestService;
 using WarehouseManager.Services.Interfaces;
@@ -87,11 +88,10 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<ICurrentRequestService, CurrentRequestService>();
-builder.Services.AddScoped<TimeZoneFilter>();
-
-// builder.Services.AddScoped<ITimeZoneManager, TimeZoneManager>();
-// builder.Services.AddScoped<TimeZoneMiddleware>();
-// builder.Services.AddScoped<TimeZoneResponseMiddleware>();
+builder.Services.AddScoped<ITimeZoneManager, TimeZoneManager>();
+builder.Services.AddScoped<RecyclableMemoryStreamManager>();
+builder.Services.AddScoped<TimeZoneResponseMiddleware>();
+builder.Services.AddScoped<TimeZoneRequestMiddleware>();
 
 builder.Services.Scan(scan => scan
     .FromCallingAssembly()
@@ -100,10 +100,6 @@ builder.Services.Scan(scan => scan
     .WithScopedLifetime());
 
 
-// builder.Services.AddControllers(options =>
-// {
-//     options.Filters.Add<TimeZoneFilter>();
-// });
 
 var app = builder.Build();
 
@@ -134,9 +130,9 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-// app.UseMiddleware<TimeZoneMiddleware>();
-//
-// app.UseMiddleware<TimeZoneResponseMiddleware>();
+app.UseMiddleware<TimeZoneRequestMiddleware>();
+
+app.UseMiddleware<TimeZoneResponseMiddleware>();
 
 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 

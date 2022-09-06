@@ -49,16 +49,16 @@ public class UserController : BaseController
         return Ok(await GenerateJsonWebTokenAsync(dto));
     }
 
-    [Produces("application/video-xflv")]
-    public IActionResult? GetFile()
-    {
-        // Response.Body;
-        // return File(null, "");
-        return null;
-    }
+    // [Produces("application/video-xflv")]
+    // public IActionResult? GetFile()
+    // {
+    //     // Response.Body;
+    //     // return File(null, "");
+    //     return null;
+    // }
 
     // [TimeZoneFilter]
-    [ServiceFilter(typeof(TimeZoneFilter))]
+    // [ServiceFilter(typeof(TimeZoneFilter))]
     [AllowAnonymous, HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateUserDto dto, [FromQuery] DateTime dateFrom,
         [FromQuery] DateTime dateAt)

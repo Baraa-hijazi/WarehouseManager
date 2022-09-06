@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text;
 using Microsoft.IO;
 using Newtonsoft.Json;
@@ -9,18 +8,17 @@ namespace WarehouseManager.Middleware;
 
 public class TimeZoneManager : ITimeZoneManager
 {
+    private static readonly RecyclableMemoryStreamManager Manager = new();
     private readonly ICurrentRequestService _currentRequestService;
-    private readonly RecyclableMemoryStreamManager _streamManager;
     private MemoryStream _responseBody;
 
-    public TimeZoneManager(ICurrentRequestService currentRequestService, RecyclableMemoryStreamManager streamManager)
+    public TimeZoneManager(ICurrentRequestService currentRequestService)
     {
         _currentRequestService = currentRequestService;
-        _streamManager = streamManager;
-        _responseBody = new MemoryStream();
+        _responseBody = Manager.GetStream();
     }
 
-    public async Task ModifyRequestTimeZones(HttpContext context)
+    public async Task UseRequestTimeZoneModifier(HttpContext context)
     {
         var bodyStr = await new StreamReader(context.Request.Body).ReadToEndAsync();
         context.Request.Body.Position = 0;
@@ -41,32 +39,16 @@ public class TimeZoneManager : ITimeZoneManager
 
         bodyStr = JsonConvert.SerializeObject(bodyJObj);
         var requestData = Encoding.UTF8.GetBytes(bodyStr);
-        context.Request.Body = new MemoryStream(requestData);
+        context.Request.Body = Manager.GetStream(requestData);
         context.Request.ContentLength = context.Request.Body.Length;
 
-        _responseBody = new RecyclableMemoryStream(_streamManager);
+        _responseBody = Manager.GetStream();
         context.Response.Body = _responseBody;
-
-        ModifyUrlTimeZones(context);
     }
 
-    private void ModifyUrlTimeZones(HttpContext context)
+    public async Task UseResponseTimeZoneModifier(HttpResponse response)
     {
-        foreach (var query in context.Request.Query)
-        {
-            if (!DateTime.TryParse(query.Value, out _)) return;
-
-            // var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
-            //
-            // var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(query.Value.ToString()), clientZone)
-            //     .ToUniversalTime();
-
-            // query.Value = localTime;
-        }
-    }
-
-    public async Task ModifyResponseTimeZones(HttpResponse context)
-    {
+        response.Body = _responseBody;
         _responseBody.Seek(0, SeekOrigin.Begin);
 
         using var sr = new StreamReader(_responseBody);
@@ -89,19 +71,35 @@ public class TimeZoneManager : ITimeZoneManager
         actionResult = JsonConvert.SerializeObject(bodyJObj);
         var requestData = Encoding.UTF8.GetBytes(actionResult);
 
-        context.Body = new MemoryStream(requestData);
+        response.ContentType = "application/json";
+        // response.ContentLength = response.Body.Length;
 
-        await context.BodyWriter.CompleteAsync();
+        response.Body = Manager.GetStream();
 
-
-        Log("OnResultExecuted", new RouteData());
+        await response.Body.WriteAsync(requestData);
     }
 
-    private void Log(string methodName, RouteData routeData)
-    {
-        var controllerName = routeData.Values["controller"];
-        var actionName = routeData.Values["action"];
-        var message = $"{methodName} controller:{controllerName} action:{actionName}";
-        Debug.WriteLine(message, "Action Filter Log");
-    }
+    // private void ModifyUrlTimeZones(HttpContext context)
+    // {
+    //     foreach (var query in context.Request.Query)
+    //     {
+    //         // if (!DateTime.TryParse(query.Value, out _)) return;
+    //
+    //         // var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
+    //         //
+    //         // var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(query.Value.ToString()), clientZone)
+    //         //     .ToUniversalTime();
+    //
+    //         // query.Value = localTime;
+    //     }
+    // }
+
+
+    // private void Log(string methodName, RouteData routeData)
+    // {
+    //     var controllerName = routeData.Values["controller"];
+    //     var actionName = routeData.Values["action"];
+    //     var message = $"{methodName} controller:{controllerName} action:{actionName}";
+    //     Debug.WriteLine(message, "Action Filter Log");
+    // }
 }
