@@ -15,13 +15,20 @@ public class TimeZoneManager : ITimeZoneManager
     public TimeZoneManager(ICurrentRequestService currentRequestService)
     {
         _currentRequestService = currentRequestService;
-        _responseBody = Manager.GetStream();
+        // _responseBody = Manager.GetStream();
     }
 
     public async Task UseRequestTimeZoneModifier(HttpContext context)
     {
         var bodyStr = await new StreamReader(context.Request.Body).ReadToEndAsync();
         context.Request.Body.Position = 0;
+
+        if (string.IsNullOrEmpty(bodyStr))
+        {
+            // _responseBody = Manager.GetStream();
+            context.Response.Body = _responseBody;
+            return;
+        }
 
         var bodyJObj = JObject.Parse(bodyStr);
 
@@ -42,41 +49,65 @@ public class TimeZoneManager : ITimeZoneManager
         context.Request.Body = Manager.GetStream(requestData);
         context.Request.ContentLength = context.Request.Body.Length;
 
-        _responseBody = Manager.GetStream();
-        context.Response.Body = _responseBody;
+        context.Response.Body = Manager.GetStream();
     }
 
     public async Task UseResponseTimeZoneModifier(HttpResponse response)
     {
-        response.Body = _responseBody;
-        _responseBody.Seek(0, SeekOrigin.Begin);
-
-        using var sr = new StreamReader(_responseBody);
-        var actionResult = await sr.ReadToEndAsync();
-
-        var bodyJObj = JObject.Parse(actionResult);
-
-        foreach (var jToken in bodyJObj.Properties())
+        using (_responseBody = (MemoryStream)response.Body)
         {
-            if (!DateTime.TryParse(jToken.Value.ToString(), out _)) continue;
+            response.Body = _responseBody;
+            _responseBody.Seek(0, SeekOrigin.Begin);
+
+            using var sr = new StreamReader(_responseBody);
+            var actionResult = await sr.ReadToEndAsync();
+
+            if (string.IsNullOrEmpty(actionResult)) return;
+
+            var bodyJObj = JObject.Parse(actionResult);
+
+            // ConvertJObjectToLocalTimeZone(bodyJObj);
+
+            foreach (var jToken in bodyJObj.Properties())
+            {
+                if (!DateTime.TryParse(jToken.Value.ToString(), out _)) continue;
+
+                var clientZone = TimeZoneInfo.FindSystemTimeZoneById("Jordan Standard Time");
+
+                var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(jToken.Value.ToString()), clientZone)
+                    .ToUniversalTime();
+
+                jToken.Value = localTime;
+            }
+
+            actionResult = JsonConvert.SerializeObject(bodyJObj);
+            var requestData = Encoding.UTF8.GetBytes(actionResult);
+
+            response.ContentType = "application/json";
+
+            response.Body = Manager.GetStream();
+
+            await response.Body.WriteAsync(requestData);
+        }
+    }
+
+    private void ConvertJObjectToLocalTimeZone(JToken bodyJObj)
+    {
+        if (bodyJObj.Values().ToList().Count == 1)
+        {
+            if (!DateTime.TryParse(bodyJObj.Values().SingleOrDefault()?.ToString(), out _)) return;
 
             var clientZone = TimeZoneInfo.FindSystemTimeZoneById("Jordan Standard Time");
 
-            var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(jToken.Value.ToString()), clientZone)
+            var localTime = TimeZoneInfo
+                .ConvertTime(DateTime.Parse(bodyJObj.Values().SingleOrDefault()?.ToString() ?? string.Empty),
+                    clientZone)
                 .ToUniversalTime();
 
-            jToken.Value = localTime;
+            ((JProperty)bodyJObj).Value = localTime;
         }
 
-        actionResult = JsonConvert.SerializeObject(bodyJObj);
-        var requestData = Encoding.UTF8.GetBytes(actionResult);
-
-        response.ContentType = "application/json";
-        // response.ContentLength = response.Body.Length;
-
-        response.Body = Manager.GetStream();
-
-        await response.Body.WriteAsync(requestData);
+        if (bodyJObj.Last != null) ConvertJObjectToLocalTimeZone(bodyJObj.Last);
     }
 
     // private void ModifyUrlTimeZones(HttpContext context)

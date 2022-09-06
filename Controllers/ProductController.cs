@@ -1,5 +1,4 @@
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WarehouseManager.Core.DTOs;
 using WarehouseManager.Persistence.Interfaces;
@@ -20,7 +19,6 @@ public class ProductController : BaseController
         _mapper = mapper;
     }
 
-    [AllowAnonymous]
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateProductDto dto)
     {
@@ -35,7 +33,6 @@ public class ProductController : BaseController
         return CreatedAtAction(ActionName, routeValues, createdResource);
     }
 
-    [AllowAnonymous]
     [HttpGet("GetValues")]
     public async Task<IActionResult> GetValues(int pageIndex, int pageSize)
     {
@@ -46,7 +43,6 @@ public class ProductController : BaseController
         return Ok(_mapper.Map<PagedResultDto<ProductDto>>(products));
     }
 
-    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetValue(int id)
     {
@@ -57,7 +53,6 @@ public class ProductController : BaseController
         return Ok(product);
     }
 
-    [AllowAnonymous]
     [HttpPut]
     public async Task<IActionResult> Update(int id, [FromBody] CreateProductDto dto)
     {
@@ -76,7 +71,6 @@ public class ProductController : BaseController
         return AcceptedAtAction(ActionName, routeValues, createdResource);
     }
 
-    [AllowAnonymous]
     [HttpDelete]
     public async Task<IActionResult> Delete(int id)
     {

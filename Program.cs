@@ -11,6 +11,7 @@ using WarehouseManager.Middleware;
 using WarehouseManager.Persistence.Context;
 using WarehouseManager.Services.CurrentRequestService;
 using WarehouseManager.Services.Interfaces;
+using WarehouseManager.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +62,8 @@ builder.Services.AddIdentity<User, IdentityRole>()
 
 builder.Services.AddSwaggerGen(options =>
 {
+    options.OperationFilter<TimeZoneHeader>();
+    
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n",

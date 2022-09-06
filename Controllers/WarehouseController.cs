@@ -1,5 +1,4 @@
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WarehouseManager.Core.DTOs;
 using WarehouseManager.Persistence.Interfaces;
@@ -20,7 +19,6 @@ public class WarehouseController : BaseController
         _mapper = mapper;
     }
 
-    [AllowAnonymous]
     [HttpPost]
     public async Task<IActionResult> CreateWarehouse([FromBody] CreateWarehouseDto dto)
     {
@@ -35,7 +33,6 @@ public class WarehouseController : BaseController
         return CreatedAtAction(ActionName, routeValues, createdResource);
     }
 
-    [AllowAnonymous]
     [HttpGet("GetValues")]
     public async Task<IActionResult> GetWarehouses(int pageIndex, int pageSize)
     {
@@ -47,7 +44,6 @@ public class WarehouseController : BaseController
         return Ok(_mapper.Map<PagedResultDto<WarehouseDto>>(wareHouses));
     }
 
-    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetValue(int id)
     {
@@ -58,7 +54,6 @@ public class WarehouseController : BaseController
         return Ok(wareHouse);
     }
 
-    [AllowAnonymous]
     [HttpPut]
     public async Task<IActionResult> Update(int id, [FromBody] CreateWarehouseDto dto)
     {
@@ -77,7 +72,6 @@ public class WarehouseController : BaseController
         return AcceptedAtAction(ActionName, routeValues, createdResource);
     }
 
-    [AllowAnonymous]
     [HttpDelete]
     public async Task<IActionResult> Delete(int id)
     {

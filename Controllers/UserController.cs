@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -37,7 +36,6 @@ public class UserController : BaseController
         _config = config;
     }
 
-    [AllowAnonymous]
     [HttpPost("Login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
@@ -57,9 +55,8 @@ public class UserController : BaseController
     //     return null;
     // }
 
-    // [TimeZoneFilter]
-    // [ServiceFilter(typeof(TimeZoneFilter))]
-    [AllowAnonymous, HttpPost]
+    
+    [HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateUserDto dto, [FromQuery] DateTime dateFrom,
         [FromQuery] DateTime dateAt)
     {
@@ -79,7 +76,6 @@ public class UserController : BaseController
         return CreatedAtAction(ActionName, routeValues, createdResource);
     }
 
-    [AllowAnonymous]
     [HttpGet("GetValues")]
     public async Task<IActionResult> GetValues(int pageIndex, int pageSize)
     {
@@ -90,8 +86,6 @@ public class UserController : BaseController
         return Ok(_mapper.Map<PagedResultDto<UserDto>>(users));
     }
 
-    // [TimeZoneFilter]
-    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetValue(string id)
     {
@@ -102,7 +96,6 @@ public class UserController : BaseController
         return Ok(user);
     }
 
-    [AllowAnonymous]
     [HttpPut]
     public async Task<IActionResult> Update(string id, [FromBody] CreateUserDto dto)
     {
@@ -121,7 +114,6 @@ public class UserController : BaseController
         return AcceptedAtAction(ActionName, routeValues, createdResource);
     }
 
-    [AllowAnonymous]
     [HttpDelete]
     public async Task<IActionResult> Delete(string id)
     {
