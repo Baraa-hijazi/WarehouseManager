@@ -12,6 +12,6 @@ public class TimeZoneRequestMiddleware : IMiddleware
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         await _timeZoneManager.UseRequestTimeZoneModifier(context);
-        await next(context);
+        await _timeZoneManager.UseResponseTimeZoneModifier(context, next);
     }
 }

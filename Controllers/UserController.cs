@@ -5,6 +5,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json.Linq;
 using WarehouseManager.Core.DTOs;
 using WarehouseManager.Core.Entities;
 using WarehouseManager.Persistence.Interfaces;
@@ -55,9 +56,11 @@ public class UserController : BaseController
     //     return null;
     // }
 
-    
+
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] CreateUserDto dto, [FromQuery] DateTime dateFrom,
+    public async Task<IActionResult> Post(
+        [FromBody] CreateUserDto dto,
+        [FromQuery] DateTime dateFrom,
         [FromQuery] DateTime dateAt)
     {
         var user = new User
@@ -70,8 +73,31 @@ public class UserController : BaseController
         _unitOfWork.UserRepository.Add(user);
         await _unitOfWork.CommitAsync();
 
-        var createdResource = new { user.Id, DateTime.Now, Version = "1.0" };
-        var routeValues = new { id = createdResource.Id, DateTime.Now, version = createdResource.Version };
+        string json = @"{
+  ""Date"": ""2019-08-01T00:00:00"",
+  ""Temperature"": 25,
+  ""Summary"": ""Hot"",
+  ""DatesAvailable"": [
+    ""2019-08-01T00:00:00"",
+    ""2019-08-02T00:00:00""
+  ],
+  ""TemperatureRanges"": {
+      ""Cold"": {
+          ""High"": 20,
+          ""Low"": -10
+      },
+      ""Hot"": {
+          ""High"": 60,
+          ""Low"": 20
+      }
+  }
+}
+";
+
+        var obj = JObject.Parse(json);
+
+        var createdResource = new { obj, DateTime.Now, Version = "1.0" };
+        var routeValues = new { obj, DateTime.Now, version = createdResource.Version };
 
         return CreatedAtAction(ActionName, routeValues, createdResource);
     }

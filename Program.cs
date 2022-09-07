@@ -29,7 +29,12 @@ builder.Services.AddCors(options =>
             ).AllowAnyMethod().AllowAnyHeader();
         });
 });
-builder.Services.AddControllers();
+
+builder.Services.AddControllers().AddJsonOptions(op =>
+{
+    // op.JsonSerializerOptions.Converters.Add();
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
@@ -93,7 +98,6 @@ builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<ICurrentRequestService, CurrentRequestService>();
 builder.Services.AddScoped<ITimeZoneManager, TimeZoneManager>();
 builder.Services.AddScoped<RecyclableMemoryStreamManager>();
-builder.Services.AddScoped<TimeZoneResponseMiddleware>();
 builder.Services.AddScoped<TimeZoneRequestMiddleware>();
 
 builder.Services.Scan(scan => scan
@@ -134,8 +138,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<TimeZoneRequestMiddleware>();
-
-app.UseMiddleware<TimeZoneResponseMiddleware>();
 
 app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
