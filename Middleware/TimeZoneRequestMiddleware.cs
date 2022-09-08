@@ -1,3 +1,5 @@
+using WarehouseManager.Middleware.Interfaces;
+
 namespace WarehouseManager.Middleware;
 
 public class TimeZoneRequestMiddleware : IMiddleware
@@ -11,7 +13,13 @@ public class TimeZoneRequestMiddleware : IMiddleware
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        await _timeZoneManager.UseRequestTimeZoneModifier(context);
-        await _timeZoneManager.UseResponseTimeZoneModifier(context, next);
+        if (context.Request.Method == HttpMethod.Post.ToString())
+        {
+            // await _timeZoneManager.UseRequestTimeZoneModifier(context);
+            await next(context);
+        }
+
+        if (context.Request.Method == HttpMethod.Get.ToString())
+            await _timeZoneManager.UseResponseTimeZoneModifier(context, next);
     }
 }

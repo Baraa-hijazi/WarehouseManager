@@ -8,7 +8,7 @@ public class CurrentRequestService : ICurrentRequestService
     public CurrentRequestService(IHttpContextAccessor context)
     {
         UserId = context.HttpContext?.User.FindFirstValue("Id") ?? string.Empty;
-        TimeZone = context.HttpContext?.Request.Headers["Time-Zone"] ?? string.Empty; //"Jordan Standard Time";
+        TimeZone = context.HttpContext?.Request.Headers["Time-Zone"] ?? string.Empty;
     }
 
     public string? UserId { get; set; }

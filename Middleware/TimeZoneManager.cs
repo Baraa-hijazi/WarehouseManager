@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using WarehouseManager.Middleware.Interfaces;
 using WarehouseManager.Services.Interfaces;
 
 namespace WarehouseManager.Middleware;
@@ -20,169 +21,95 @@ public class TimeZoneManager : ITimeZoneManager
     {
         context.Request.EnableBuffering();
 
-        var bodyStr = await new StreamReader(context.Request.Body).ReadToEndAsync();
-        context.Request.Body.Position = 0;
+        context.Request.Body.Seek(0, SeekOrigin.Begin);
 
-        if (string.IsNullOrEmpty(bodyStr))
+        var reqBodyStr = await new StreamReader(context.Request.Body).ReadToEndAsync();
+
+        context.Request.Body.Seek(0, SeekOrigin.Begin);
+
+        if (!string.IsNullOrEmpty(reqBodyStr))
         {
-            // _responseBody = Manager.GetStream();
-            // context.Response.Body = _responseBody;
-            return;
+            var reqBody = JObject.Parse(reqBodyStr);
+
+            WalkNode(reqBody, null, prop =>
+            {
+                if (DateTime.TryParse(prop.Value.ToString(), out _))
+                {
+                    var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
+
+                    var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(prop.Value.ToString()), clientZone)
+                        .ToUniversalTime();
+
+                    prop.Value = localTime;
+                }
+            });
+
+            reqBodyStr = JsonConvert.SerializeObject(reqBody);
+            var requestData = Encoding.UTF8.GetBytes(reqBodyStr);
+            context.Request.Body = Manager.GetStream(requestData);
+            context.Request.ContentLength = context.Request.Body.Length;
         }
-
-        var bodyJObj = JObject.Parse(bodyStr);
-
-        foreach (var jToken in bodyJObj.Properties())
-        {
-            if (!DateTime.TryParse(jToken.Value.ToString(), out _)) continue;
-
-            var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
-
-            var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(jToken.Value.ToString()), clientZone)
-                .ToUniversalTime();
-
-            jToken.Value = localTime;
-        }
-
-        bodyStr = JsonConvert.SerializeObject(bodyJObj);
-        var requestData = Encoding.UTF8.GetBytes(bodyStr);
-        context.Request.Body = Manager.GetStream(requestData);
-        context.Request.ContentLength = context.Request.Body.Length;
     }
 
     public async Task UseResponseTimeZoneModifier(HttpContext context, RequestDelegate next)
     {
         var originalBodyStream = context.Response.Body;
 
-        await using var responseBody = Manager.GetStream( );
-        context.Response.Body = responseBody;
+        await using var memoryStream = Manager.GetStream();
+        context.Response.Body = memoryStream;
 
         await next(context);
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
-        
-       var responseBodyStr = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        var responseBodyStr = await new StreamReader(context.Response.Body).ReadToEndAsync();
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
 
-        if (string.IsNullOrEmpty(responseBodyStr)) return;
-
-
-        var bodyJObj = JObject.Parse(responseBodyStr);
-
-
-        // var tokens = AllTokens(jsonObj);
-        // var titles = tokens.Where(t => t.Type == JTokenType.Date && (DateTime)((JProperty)t).Value == DateTime.Now);
-
-        // WalkNode(node);
-
-        // WalkNode(node, n =>
-        // {
-        //     var token = n;
-        //
-        //     if (token is not { Type: JTokenType.Date }) return;
-        //
-        //     var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
-        //
-        //     var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(token.ToString()), clientZone)
-        //         .ToUniversalTime();
-        //     
-        //     ((JProperty)token.Last!).Value = localTime;
-        // });
-
-
-        foreach (var jToken in bodyJObj.Properties())
+        if (!string.IsNullOrEmpty(responseBodyStr))
         {
-            if (!DateTime.TryParse(jToken.Value.ToString(), out _)) continue;
+            var responseBody = JObject.Parse(responseBodyStr);
 
-            var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
+            WalkNode(responseBody, null, prop =>
+            {
+                if (DateTime.TryParse(prop.Value.ToString(), out _))
+                {
+                    var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
 
-            var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(jToken.Value.ToString()), clientZone)
-                .ToUniversalTime();
+                    var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(prop.Value.ToString()), clientZone)
+                        .ToUniversalTime();
 
-            jToken.Value = localTime;
+                    prop.Value = localTime;
+                }
+            });
+
+            responseBodyStr = JsonConvert.SerializeObject(responseBody);
+            var responseData = Encoding.UTF8.GetBytes(responseBodyStr);
+            context.Response.Body = Manager.GetStream(responseData);
+            await context.Response.Body.CopyToAsync(originalBodyStream);
         }
-
-        responseBodyStr = JsonConvert.SerializeObject(bodyJObj);
-
-        var responseData = Encoding.UTF8.GetBytes(responseBodyStr);
-        
-        context.Response.Body = Manager.GetStream(responseData);
-
-        await context.Response.Body.CopyToAsync(originalBodyStream);
     }
 
-    // IEnumerable<JToken> AllTokens(JObject obj)
-    // {
-    //     var toSearch = new Stack<JToken>(obj.Children());
-    //     while (toSearch.Count > 0)
-    //     {
-    //         var inspected = toSearch.Pop();
-    //         yield return inspected;
-    //         foreach (var child in inspected)
-    //         {
-    //             toSearch.Push(child);
-    //         }
-    //     }
-    // }
-    //
-    // private static JObject WalkNode(JToken node)
-    // {
-    //     JObject result;
-    //     if (node.Type is JTokenType.Property or JTokenType.Object)
-    //     {
-    //         foreach (var child in node)
-    //             if (child.HasValues || child.Type == JTokenType.Date)
-    //             {
-    //                 result = WalkNode(child);
-    //             }
-    //     }
-    //     else if (node.Type == JTokenType.Date)
-    //     {
-    //         var clientZone = TimeZoneInfo.FindSystemTimeZoneById("Jordan Standard Time");
-    //
-    //         var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(node.ToString()), clientZone)
-    //             .ToUniversalTime();
-    //
-    //         // JValue.Parse(result).//LastOrDefault() = localTime;
-    //     }
-    //
-    //     return (JObject)node;
-    // }
-    //
-    //
-    // private void ConvertJObjectToLocalTimeZone(JToken bodyJObj)
-    // {
-    //     if (bodyJObj.Values().ToList().Count == 1)
-    //     {
-    //         if (!DateTime.TryParse(bodyJObj.Values().SingleOrDefault()?.ToString(), out _)) return;
-    //
-    //         var clientZone = TimeZoneInfo.FindSystemTimeZoneById("Jordan Standard Time");
-    //
-    //         var localTime = TimeZoneInfo
-    //             .ConvertTime(DateTime.Parse(bodyJObj.Values().SingleOrDefault()?.ToString() ?? string.Empty),
-    //                 clientZone)
-    //             .ToUniversalTime();
-    //
-    //         ((JProperty)bodyJObj).Value = localTime;
-    //     }
-    //
-    //     if (bodyJObj.Last != null)
-    //     {
-    //         ConvertJObjectToLocalTimeZone(bodyJObj.Last);
-    //     }
-    // }
+    private static void WalkNode(JToken node,
+        Action<JObject>? objectAction = null,
+        Action<JProperty>? propertyAction = null)
+    {
+        if (node.Type == JTokenType.Object)
+        {
+            objectAction?.Invoke((JObject)node);
 
-    // private void ModifyUrlTimeZones(HttpContext context)
-    // {
-    //     foreach (var query in context.Request.Query)
-    //     {
-    //         if (!DateTime.TryParse(query.Value, out _)) return;
-    //
-    //         var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
-    //
-    //         var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(query.Value.ToString()), clientZone)
-    //             .ToUniversalTime();
-    //     }
-    // }
+            foreach (var child in node.Children<JProperty>())
+            {
+                propertyAction?.Invoke(child);
+                WalkNode(child.Value, objectAction, propertyAction);
+            }
+        }
+        else if (node.Type == JTokenType.Array)
+        {
+            foreach (var child in node.Children())
+            {
+                WalkNode(child, objectAction, propertyAction);
+            }
+        }
+    }
 }

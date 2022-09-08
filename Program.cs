@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using WarehouseManager.Core.Entities;
 using WarehouseManager.Middleware;
+using WarehouseManager.Middleware.Interfaces;
 using WarehouseManager.Persistence.Context;
 using WarehouseManager.Services.CurrentRequestService;
 using WarehouseManager.Services.Interfaces;
@@ -30,10 +31,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddControllers().AddJsonOptions(op =>
-{
-    // op.JsonSerializerOptions.Converters.Add();
-});
+builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -68,7 +66,7 @@ builder.Services.AddIdentity<User, IdentityRole>()
 builder.Services.AddSwaggerGen(options =>
 {
     options.OperationFilter<TimeZoneHeader>();
-    
+
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n",
@@ -107,7 +105,6 @@ builder.Services.Scan(scan => scan
     .WithScopedLifetime());
 
 
-
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -120,12 +117,6 @@ if (app.Environment.IsDevelopment())
         c.EnableDeepLinking();
     });
 }
-
-app.Use((context, next) =>
-{
-    context.Request.EnableBuffering();
-    return next();
-});
 
 app.UseHttpsRedirection();
 

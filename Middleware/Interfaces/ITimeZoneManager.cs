@@ -1,4 +1,4 @@
-namespace WarehouseManager.Middleware;
+namespace WarehouseManager.Middleware.Interfaces;
 
 public interface ITimeZoneManager
 {
