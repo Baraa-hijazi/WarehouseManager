@@ -1,7 +1,7 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.IO;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using WarehouseManager.Middleware.Interfaces;
 using WarehouseManager.Services.Interfaces;
 
@@ -29,28 +29,29 @@ public class TimeZoneManager : ITimeZoneManager
 
         if (!string.IsNullOrEmpty(reqBodyStr))
         {
-            var reqBody = JObject.Parse(reqBodyStr);
+            var reqBody = JsonSerializer.Deserialize<Dictionary<string, object?>>(reqBodyStr);
 
-            WalkNode(reqBody, null, prop =>
-            {
-                if (DateTime.TryParse(prop.Value.ToString(), out _))
-                {
-                    var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
+            // WalkNode(reqBody, null, prop =>
+            // {
+            //     if (DateTime.TryParse(prop.Value.ToString(), out _))
+            //     {
+            //         var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
+            //
+            //         var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(prop.Value.ToString()), clientZone)
+            //             .ToUniversalTime();
+            //
+            //         prop.Value = localTime;
+            //     }
+            // });
 
-                    var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(prop.Value.ToString()), clientZone)
-                        .ToUniversalTime();
-
-                    prop.Value = localTime;
-                }
-            });
-
-            reqBodyStr = JsonConvert.SerializeObject(reqBody);
+            reqBodyStr = JsonSerializer.Serialize(reqBody);
             var requestData = Encoding.UTF8.GetBytes(reqBodyStr);
             context.Request.Body = Manager.GetStream(requestData);
             context.Request.ContentLength = context.Request.Body.Length;
         }
     }
 
+    // TODO: PUT IN TRY CATCH
     public async Task UseResponseTimeZoneModifier(HttpContext context, RequestDelegate next)
     {
         var originalBodyStream = context.Response.Body;
@@ -68,7 +69,23 @@ public class TimeZoneManager : ITimeZoneManager
 
         if (!string.IsNullOrEmpty(responseBodyStr))
         {
-            var responseBody = JObject.Parse(responseBodyStr);
+
+            // var aa = JsonDocument.Parse(responseBodyStr);
+            // var roE = aa.RootElement;
+            // var responseBody = JsonNode.Parse(responseBodyStr);
+            // var ro = responseBody?.Root.Root.Root.AsObject();
+            // var pa = responseBody?.AsObject(); //.AsValue();
+            // var chapters = jsonObj.RootElement.EnumerateObject().ToList();
+
+            var responseBody = JsonSerializer.Deserialize<Dictionary<string, object?>>(responseBodyStr);
+            var io = responseBody.GetEnumerator();
+            var po = io.Current;
+
+
+            var jsonObj = JsonDocument.Parse(responseBodyStr);
+
+            var el = jsonObj.RootElement;
+
 
             WalkNode(responseBody, null, prop =>
             {
@@ -83,30 +100,30 @@ public class TimeZoneManager : ITimeZoneManager
                 }
             });
 
-            responseBodyStr = JsonConvert.SerializeObject(responseBody);
+            responseBodyStr = JsonSerializer.Serialize(responseBody);
             var responseData = Encoding.UTF8.GetBytes(responseBodyStr);
             context.Response.Body = Manager.GetStream(responseData);
             await context.Response.Body.CopyToAsync(originalBodyStream);
         }
     }
 
-    private static void WalkNode(JToken node,
-        Action<JObject>? objectAction = null,
-        Action<JProperty>? propertyAction = null)
+    private static void WalkNode(JsonProperty node,
+        Action<JsonProperty>? objectAction = null,
+        Action<JsonProperty>? propertyAction = null)
     {
-        if (node.Type == JTokenType.Object)
+        if (node.GetType().Assembly.ToString() == JTokenType.Object.ToString())
         {
-            objectAction?.Invoke((JObject)node);
+            objectAction?.Invoke(node);
 
-            foreach (var child in node.Children<JProperty>())
+            foreach (var child in node.Value.EnumerateObject().ToList())
             {
                 propertyAction?.Invoke(child);
-                WalkNode(child.Value, objectAction, propertyAction);
+                WalkNode(child, objectAction, propertyAction);
             }
         }
-        else if (node.Type == JTokenType.Array)
+        else if (node.GetType().Assembly.ToString() == JTokenType.Array.ToString())
         {
-            foreach (var child in node.Children())
+            foreach (var child in node.Value.EnumerateObject().ToList())
             {
                 WalkNode(child, objectAction, propertyAction);
             }
