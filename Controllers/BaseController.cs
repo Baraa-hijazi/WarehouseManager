@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace WarehouseManager.Controllers;
 
-[Authorize(AuthenticationSchemes = "Bearer")]
+// [Authorize(AuthenticationSchemes = "Bearer")]
 public class BaseController : ControllerBase
 {
     [NonAction]

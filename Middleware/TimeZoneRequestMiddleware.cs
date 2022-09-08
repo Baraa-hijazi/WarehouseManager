@@ -15,7 +15,7 @@ public class TimeZoneRequestMiddleware : IMiddleware
     {
         if (context.Request.Method == HttpMethod.Post.ToString())
         {
-            // await _timeZoneManager.UseRequestTimeZoneModifier(context);
+            await _timeZoneManager.UseRequestTimeZoneModifier(context);
             await next(context);
         }
 
