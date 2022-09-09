@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Microsoft.IO;
 using Newtonsoft.Json;
@@ -19,74 +20,88 @@ public class TimeZoneManager : ITimeZoneManager
 
     public async Task UseRequestTimeZoneModifier(HttpContext context)
     {
-        context.Request.EnableBuffering();
-
-        context.Request.Body.Seek(0, SeekOrigin.Begin);
-
-        var reqBodyStr = await new StreamReader(context.Request.Body).ReadToEndAsync();
-
-        context.Request.Body.Seek(0, SeekOrigin.Begin);
-
-        if (!string.IsNullOrEmpty(reqBodyStr))
+        try
         {
-            var reqBody = JObject.Parse(reqBodyStr);
+            context.Request.EnableBuffering();
 
-            WalkNode(reqBody, null, prop =>
+            context.Request.Body.Seek(0, SeekOrigin.Begin);
+
+            var reqBodyStr = await new StreamReader(context.Request.Body).ReadToEndAsync();
+
+            context.Request.Body.Seek(0, SeekOrigin.Begin);
+
+            if (!string.IsNullOrEmpty(reqBodyStr))
             {
-                if (DateTime.TryParse(prop.Value.ToString(), out _))
+                var reqBody = JObject.Parse(reqBodyStr);
+
+                WalkNode(reqBody, null, prop =>
                 {
-                    var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
+                    if (DateTime.TryParse(prop.Value.ToString(), out _))
+                    {
+                        var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
 
-                    var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(prop.Value.ToString()), clientZone)
-                        .ToUniversalTime();
+                        var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(prop.Value.ToString()), clientZone)
+                            .ToUniversalTime();
 
-                    prop.Value = localTime;
-                }
-            });
+                        prop.Value = localTime;
+                    }
+                });
 
-            reqBodyStr = JsonConvert.SerializeObject(reqBody);
-            var requestData = Encoding.UTF8.GetBytes(reqBodyStr);
-            context.Request.Body = Manager.GetStream(requestData);
-            context.Request.ContentLength = context.Request.Body.Length;
+                reqBodyStr = JsonConvert.SerializeObject(reqBody);
+                var requestData = Encoding.UTF8.GetBytes(reqBodyStr);
+                context.Request.Body = Manager.GetStream(requestData);
+                context.Request.ContentLength = context.Request.Body.Length;
+            }
+        }
+        catch (Exception)
+        {
+            Debug.WriteLine(await new StreamReader(context.Request.Body).ReadToEndAsync());
         }
     }
 
     public async Task UseResponseTimeZoneModifier(HttpContext context, RequestDelegate next)
     {
-        var originalBodyStream = context.Response.Body;
-
-        await using var memoryStream = Manager.GetStream();
-        context.Response.Body = memoryStream;
-
-        await next(context);
-
-        context.Response.Body.Seek(0, SeekOrigin.Begin);
-
-        var responseBodyStr = await new StreamReader(context.Response.Body).ReadToEndAsync();
-
-        context.Response.Body.Seek(0, SeekOrigin.Begin);
-
-        if (!string.IsNullOrEmpty(responseBodyStr))
+        try
         {
-            var responseBody = JObject.Parse(responseBodyStr);
+            var originalBodyStream = context.Response.Body;
 
-            WalkNode(responseBody, null, prop =>
+            await using var memoryStream = Manager.GetStream();
+            context.Response.Body = memoryStream;
+
+            await next(context);
+
+            context.Response.Body.Seek(0, SeekOrigin.Begin);
+
+            var responseBodyStr = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+            context.Response.Body.Seek(0, SeekOrigin.Begin);
+
+            if (!string.IsNullOrEmpty(responseBodyStr))
             {
-                if (DateTime.TryParse(prop.Value.ToString(), out _))
+                var responseBody = JObject.Parse(responseBodyStr);
+
+                WalkNode(responseBody, null, prop =>
                 {
-                    var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
+                    if (DateTime.TryParse(prop.Value.ToString(), out _))
+                    {
+                        var clientZone = TimeZoneInfo.FindSystemTimeZoneById(_currentRequestService.TimeZone);
 
-                    var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(prop.Value.ToString()), clientZone)
-                        .ToUniversalTime();
+                        var localTime = TimeZoneInfo.ConvertTime(DateTime.Parse(prop.Value.ToString()), clientZone)
+                            .ToUniversalTime();
 
-                    prop.Value = localTime;
-                }
-            });
+                        prop.Value = localTime;
+                    }
+                });
 
-            responseBodyStr = JsonConvert.SerializeObject(responseBody);
-            var responseData = Encoding.UTF8.GetBytes(responseBodyStr);
-            context.Response.Body = Manager.GetStream(responseData);
-            await context.Response.Body.CopyToAsync(originalBodyStream);
+                responseBodyStr = JsonConvert.SerializeObject(responseBody);
+                var responseData = Encoding.UTF8.GetBytes(responseBodyStr);
+                context.Response.Body = Manager.GetStream(responseData);
+                await context.Response.Body.CopyToAsync(originalBodyStream);
+            }
+        }
+        catch (Exception)
+        {
+            Debug.WriteLine(await new StreamReader(context.Request.Body).ReadToEndAsync());
         }
     }
 
